@@ -3,18 +3,17 @@ import logging
 from datetime import datetime, timedelta
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional
 
 import pandas as pd
 
 # Определяем корень проекта (папка, где лежит src/)
 project_root: Path = Path(__file__).resolve().parent.parent
 
-# Создаем директорию reports в корне проекта, если её нет
+# Создаем директории reports и logs в корне проекта, если их нет
 reports_dir: Path = project_root / "reports"
 reports_dir.mkdir(parents=True, exist_ok=True)
 
-# Создаем директорию logs в корне проекта, если её нет
 logs_dir: Path = project_root / "logs"
 logs_dir.mkdir(parents=True, exist_ok=True)
 
@@ -23,11 +22,18 @@ logger: logging.Logger = logging.getLogger("reports")
 logger.setLevel(logging.DEBUG)
 
 # Файловый обработчик для логов
-file_handler: logging.FileHandler = logging.FileHandler(logs_dir / "reports.log", mode="w", encoding="utf-8")
+file_handler: logging.FileHandler = logging.FileHandler(
+    logs_dir / "reports.log",
+    mode="w",
+    encoding="utf-8"
+)
 file_handler.setLevel(logging.DEBUG)
 
 # Форматирование логов
-formatter: logging.Formatter = logging.Formatter("{asctime} - {name} - {levelname}: {message}", style="{")
+formatter: logging.Formatter = logging.Formatter(
+    "{asctime} - {name} - {levelname}: {message}",
+    style="{"
+)
 file_handler.setFormatter(formatter)
 
 # Подключаем обработчик
@@ -36,9 +42,15 @@ logger.addHandler(file_handler)
 
 def report_writer(filename: Optional[str] = None) -> Callable[[Any], Any]:
     """
-    Декоратор для записи результатов функций-отчётов в файл.
-    """
+    Декоратор для записи результатов функций-отчетов в файл.
 
+    Параметры:
+        filename (Optional[str]): Имя файла для сохранения отчета.
+                                 Если не указан, создается файл с именем вида `{функция_отчета}_YYYYMMDD_HHMMSS.json`.
+
+    Возвращаемое значение:
+        Callable[[Any], Any]: Обернутая функция-декоратор.
+    """
     def decorator(func: Callable[..., pd.DataFrame]) -> Callable[..., pd.DataFrame]:
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> pd.DataFrame:
@@ -46,17 +58,16 @@ def report_writer(filename: Optional[str] = None) -> Callable[[Any], Any]:
 
             # Генерируем имя файла по умолчанию, если не передано
             if filename is None:
-                default_filename: str = f"{func.__name__}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                output_file_default: Path = reports_dir / default_filename
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                output_file = reports_dir / f"{func.__name__}_{timestamp}.json"
             else:
-                output_file_custom: Path = reports_dir / filename
+                output_file = reports_dir / filename
 
-            output_file: Path = output_file_default if filename is None else output_file_custom
-
+            # Сохраняем результат в JSON-файл
             with open(output_file, "w", encoding="utf-8") as f:
-                json.dump(result.to_dict("records"), f, ensure_ascii=False, indent=4)
+                json.dump(result.to_dict('records'), f, ensure_ascii=False, indent=4)
 
-            logger.info(f"Сохранён отчёт '{func.__name__}' в файл: {output_file}")
+            logger.info(f"Сохранён отчет '{func.__name__}' в файл: {output_file}")
             return result
 
         return wrapper
@@ -65,90 +76,53 @@ def report_writer(filename: Optional[str] = None) -> Callable[[Any], Any]:
 
 
 @report_writer()
-def spending_by_category(transactions: pd.DataFrame, category: str, date: Optional[str] = None) -> pd.DataFrame:
+def spending_by_category(
+    transactions: pd.DataFrame,
+    category: str,
+    date: Optional[str] = None
+) -> pd.DataFrame:
     """
-    Формирует отчёт о тратах по заданной категории за последние три месяца.
+    Формирует отчет о тратах по заданной категории за последние три месяца.
 
-    Аргументы:
-        transactions (pd.DataFrame): датафрейм с транзакциями
-        category (str): категория расходов
-        date (Optional[str]): дата в формате ДД.ММ.ГГГГ (по умолчанию текущая дата)
+    Параметры:
+        transactions (pd.DataFrame): Датафрейм с транзакциями.
+        category (str): Категория расходов.
+        date (Optional[str]): Дата в формате ДД.ММ.ГГГГ (по умолчанию текущая дата).
+                             Отсчет трехмесячного периода ведется от этой даты.
 
-    Возвращает:
-        pd.DataFrame: таблица с суммами трат по месяцам
+    Возвращаемое значение:
+        pd.DataFrame: Таблица с суммами трат по месяцам.
     """
-
     # Устанавливаем текущую дату, если не указана
     if date is None:
-        current_date_current: datetime = datetime.today()
+        current_date = datetime.today()
     else:
-        current_date_specified: datetime = datetime.strptime(date, "%d.%m.%Y")
+        current_date = datetime.strptime(date, "%d.%m.%Y")
 
-    current_date: datetime = current_date_current if date is None else current_date_specified
+    # Вычисляем начальную дату трехмесячного периода
+    start_date = current_date - timedelta(days=90)
 
-    # Вычисляем начальную дату трёхмесячного периода
-    start_date: datetime = current_date - timedelta(days=90)
-
-    # Конвертируем строку даты в объект datetime
-    transactions["Дата платежа"] = pd.to_datetime(transactions["Дата платежа"], format="%d.%m.%Y")
+    # Преобразуем столбец даты в объект datetime
+    transactions['Дата платежа'] = pd.to_datetime(
+        transactions['Дата платежа'],
+        format='%d.%m.%Y'
+    )
 
     # Фильтруем транзакции по категории и периоду
-    filtered_df: pd.DataFrame = transactions[
-        (transactions["Категория"] == category)
-        & (transactions["Дата платежа"] >= start_date)
-        & (transactions["Дата платежа"] <= current_date)
+    filtered_df = transactions[
+        (transactions['Категория'] == category) &
+        (transactions['Дата платежа'] >= start_date) &
+        (transactions['Дата платежа'] <= current_date)
     ]
 
     # Группируем суммы по месяцам
-    grouped_df: pd.DataFrame = (
-        filtered_df.groupby(filtered_df["Дата платежа"].dt.strftime("%B %Y"))["Сумма платежа"].sum().reset_index()
+    grouped_df = (
+        filtered_df.groupby(filtered_df["Дата платежа"].dt.strftime("%B %Y"))["Сумма платежа"]
+        .sum()
+        .reset_index()
+        .sort_values(by=["Дата платежа"])  # Явная сортировка по дате
     )
 
-    logger.info(f"Сформирован отчёт о тратах по категории '{category}' за последние три месяца.")
+    logger.info(f"Сформирован отчет о тратах по категории '{category}' за последние три месяца.")
 
     return grouped_df
-
-
-def load_transactions_from_excel(file_path: Optional[Union[Path, str]] = None) -> pd.DataFrame:
-    """
-    Загружает транзакции из Excel-файла в DataFrame.
-
-    Если путь не указан, ищет файл data/operations.xlsx в корне проекта.
-
-    Аргументы:
-        file_path (Optional[Union[Path, str]]): путь к файлу Excel (относительный или абсолютный).
-            Если None — используется стандартный путь: <корень_проекта>/data/operations.xlsx
-
-    Возвращает:
-        pd.DataFrame с данными транзакций
-
-    Исключения:
-        FileNotFoundError: если файл не найден
-        Exception: если ошибка при чтении Excel
-    """
-    try:
-        # Если путь не передан — формируем стандартный путь
-        if file_path is None:
-            file_path_standard: Path = project_root / "data" / "operations.xlsx"
-            logger.info(f"Путь к файлу не указан. Используется стандартный путь: {file_path_standard}")
-        elif isinstance(file_path, str):
-            file_path_converted: Path = Path(file_path)
-
-        file_path_used: Path = file_path_standard if file_path is None else file_path_converted
-
-        # Проверяем существование файла
-        if not file_path_used.exists():
-            raise FileNotFoundError(f"Файл не найден: {file_path_used}")
-
-        # Читаем Excel
-        df: pd.DataFrame = pd.read_excel(file_path_used)
-        logger.info(f"Данные загружены из {file_path_used}. Найдено строк: {len(df)}")
-
-        return df
-
-    except FileNotFoundError as e:
-        logger.error(f"Файл не найден: {e}")
-        raise
-    except Exception as e:
-        logger.error(f"Ошибка при чтении Excel-файла {file_path_used}: {e}")
-        raise
