@@ -22,18 +22,11 @@ logger: logging.Logger = logging.getLogger("reports")
 logger.setLevel(logging.DEBUG)
 
 # Файловый обработчик для логов
-file_handler: logging.FileHandler = logging.FileHandler(
-    logs_dir / "reports.log",
-    mode="w",
-    encoding="utf-8"
-)
+file_handler: logging.FileHandler = logging.FileHandler(logs_dir / "reports.log", mode="w", encoding="utf-8")
 file_handler.setLevel(logging.DEBUG)
 
 # Форматирование логов
-formatter: logging.Formatter = logging.Formatter(
-    "{asctime} - {name} - {levelname}: {message}",
-    style="{"
-)
+formatter: logging.Formatter = logging.Formatter("{asctime} - {name} - {levelname}: {message}", style="{")
 file_handler.setFormatter(formatter)
 
 # Подключаем обработчик
@@ -51,6 +44,7 @@ def report_writer(filename: Optional[str] = None) -> Callable[[Any], Any]:
     Возвращаемое значение:
         Callable[[Any], Any]: Обернутая функция-декоратор.
     """
+
     def decorator(func: Callable[..., pd.DataFrame]) -> Callable[..., pd.DataFrame]:
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> pd.DataFrame:
@@ -58,14 +52,14 @@ def report_writer(filename: Optional[str] = None) -> Callable[[Any], Any]:
 
             # Генерируем имя файла по умолчанию, если не передано
             if filename is None:
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 output_file = reports_dir / f"{func.__name__}_{timestamp}.json"
             else:
                 output_file = reports_dir / filename
 
             # Сохраняем результат в JSON-файл
             with open(output_file, "w", encoding="utf-8") as f:
-                json.dump(result.to_dict('records'), f, ensure_ascii=False, indent=4)
+                json.dump(result.to_dict("records"), f, ensure_ascii=False, indent=4)
 
             logger.info(f"Сохранён отчет '{func.__name__}' в файл: {output_file}")
             return result
@@ -76,11 +70,7 @@ def report_writer(filename: Optional[str] = None) -> Callable[[Any], Any]:
 
 
 @report_writer()
-def spending_by_category(
-    transactions: pd.DataFrame,
-    category: str,
-    date: Optional[str] = None
-) -> pd.DataFrame:
+def spending_by_category(transactions: pd.DataFrame, category: str, date: Optional[str] = None) -> pd.DataFrame:
     """
     Формирует отчет о тратах по заданной категории за последние три месяца.
 
@@ -103,16 +93,13 @@ def spending_by_category(
     start_date = current_date - timedelta(days=90)
 
     # Преобразуем столбец даты в объект datetime
-    transactions['Дата платежа'] = pd.to_datetime(
-        transactions['Дата платежа'],
-        format='%d.%m.%Y'
-    )
+    transactions["Дата платежа"] = pd.to_datetime(transactions["Дата платежа"], format="%d.%m.%Y")
 
     # Фильтруем транзакции по категории и периоду
     filtered_df = transactions[
-        (transactions['Категория'] == category) &
-        (transactions['Дата платежа'] >= start_date) &
-        (transactions['Дата платежа'] <= current_date)
+        (transactions["Категория"] == category)
+        & (transactions["Дата платежа"] >= start_date)
+        & (transactions["Дата платежа"] <= current_date)
     ]
 
     # Группируем суммы по месяцам
