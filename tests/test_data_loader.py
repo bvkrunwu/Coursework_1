@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+import tempfile
 
 from src.data_loader import load_operations_data
 
@@ -13,8 +13,11 @@ from src.data_loader import load_operations_data
 @pytest.fixture
 def excel_file():
     """Создает временный Excel-файл с образцом данных"""
-    with NamedTemporaryFile(suffix='.xlsx', delete=False) as f:
-        df = pd.DataFrame({'Date': ['2023-01-01'], 'Amount': [100]})
+    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as f:
+        df = pd.DataFrame({
+            'Дата операции': ['2023-01-01'],
+            'Сумма операции': [100]
+        })
         df.to_excel(f.name, index=False)
         yield f.name
     Path(f.name).unlink(missing_ok=True)
@@ -23,8 +26,11 @@ def excel_file():
 @pytest.fixture
 def csv_file():
     """Создает временный CSV-файл для проверки некорректного формата"""
-    with NamedTemporaryFile(suffix='.csv', delete=False) as f:
-        df = pd.DataFrame({'Date': ['2023-01-01'], 'Amount': [100]})
+    with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as f:
+        df = pd.DataFrame({
+            'Дата операции': ['2023-01-01'],
+            'Сумма операции': [100]
+        })
         df.to_csv(f.name, index=False)
         yield f.name
     Path(f.name).unlink(missing_ok=True)
@@ -35,7 +41,7 @@ def test_load_operations_success(excel_file):
     df = load_operations_data(excel_file)
     assert isinstance(df, pd.DataFrame)
     assert not df.empty
-    assert set(df.columns) == {'Date', 'Amount'}
+    assert set(df.columns) == {'Дата операции', 'Сумма операции'}
 
 # Тест для обработки отсутствующего файла
 def test_load_operations_file_not_found():
