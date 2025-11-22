@@ -1,6 +1,9 @@
-import pytest
-from src.views import generate_home_response
 from unittest.mock import patch
+
+import pytest
+
+from src.views import generate_home_response
+
 
 @pytest.fixture
 def mock_utils():

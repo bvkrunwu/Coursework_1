@@ -1,7 +1,10 @@
-import pytest
-from src.utils import determine_greeting, calculate_card_data, retrieve_top_transactions
 from unittest.mock import patch
+
 import pandas as pd
+import pytest
+
+from src.utils import calculate_card_data, determine_greeting, retrieve_top_transactions
+
 
 @pytest.fixture
 def mock_dataframe():

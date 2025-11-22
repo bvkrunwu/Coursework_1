@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
 from src.utils import (calculate_card_data, determine_greeting, get_currency_rates, get_stock_prices,
                        retrieve_top_transactions)

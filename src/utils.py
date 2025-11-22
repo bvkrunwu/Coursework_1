@@ -1,7 +1,7 @@
-from datetime import datetime
 import json
 import logging
 import os
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -67,7 +67,7 @@ def calculate_card_data(start_date, end_date):
     df = pd.read_excel("data/operations.xlsx")
 
     # Преобразуем даты в формат datetime с указанием формата DD-MM-YYYY
-    df["Дата операции"] = pd.to_datetime(df["Дата операции"], format='%d.%m.%Y')
+    df["Дата операции"] = pd.to_datetime(df["Дата операции"], format="%d.%m.%Y")
 
     # Фильтруем данные по дате
     mask = (df["Дата операции"] >= start_date) & (df["Дата операции"] <= end_date)
@@ -103,7 +103,7 @@ def retrieve_top_transactions(start_date, end_date):
     df = pd.read_excel("data/operations.xlsx")
 
     # Преобразуем даты в формат datetime с указанием формата DD-MM-YYYY
-    df["Дата операции"] = pd.to_datetime(df["Дата операции"], format='%d.%m.%Y')
+    df["Дата операции"] = pd.to_datetime(df["Дата операции"], format="%d.%m.%Y")
 
     # Фильтруем данные по дате
     mask = (df["Дата операции"] >= start_date) & (df["Дата операции"] <= end_date)

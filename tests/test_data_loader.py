@@ -1,10 +1,10 @@
-import pytest
-import pandas as pd
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
+import pandas as pd
+import pytest
 
 from src.data_loader import load_operations_data
-
 
 # Импортируем тестируемую функцию
 
